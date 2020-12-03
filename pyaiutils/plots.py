@@ -12,8 +12,9 @@ log = logging.getLogger()
 
 def plot_confusion_matrix(
     y_test, y_pred, class_names=None, save_path=None, 
-    visualize=False, cmap=None, normalize=True, labels=True, 
-    title='Matriz de confusão'
+    visualize=False, cmap=None, normalize=True, labels=True,
+    title='Matriz de confusão',
+    figsize=(10, 10)
     ):
     y_test = np.array(y_test)
     y_pred = np.array(y_pred)
@@ -43,7 +44,7 @@ def plot_confusion_matrix(
         # modificação wenisten para poder elevar para percetual o resultado.
         perc_cm = perc_cm*100
 
-    fig = plt.figure(figsize=(6, 6), edgecolor='k')  # (8, 6))
+    fig = plt.figure(figsize=figsize, edgecolor='k')  # (8, 6))
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     #plt.clim(-5, 2.0)
     plt.xlim(-0.5, len(np.unique(y_test))-0.5)
