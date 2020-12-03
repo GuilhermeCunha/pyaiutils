@@ -19,7 +19,7 @@ def precision(tp, fp):
 def f1_score(y_true, y_pred):
     assert len(np.shape(y_true)) == 1, "y_true must be a 1-dimension array of integers"
     assert len(np.shape(y_pred)) == 1, "y_pred must be a 1-dimension array of integers"
-    
+
     return sklearn.metrics.f1_score(y_true, y_pred, average=None)
 
 def prc_auc(y_true, y_pred, class_names):
@@ -79,11 +79,12 @@ def get_metrics(y_test, y_pred, class_names, save_path=None):
 
     assert len(np.shape(y_test)) == 1, "y_test must be a 1-dimension array of integers"
     assert (len(np.shape(y_pred)) > 1 and np.shape(y_pred)[-1] == n_classes), f"y_pred must be a n-dimension array like (n_samples, {n_classes})"
+    assert len(y_test) == len(y_pred), "y_test and y_pred must have the same size"
     assert (isinstance(class_names, list) and isinstance(class_names[0], str)), "class_names must be a 1-dimension array of strings"
 
     y_pred_1d = utils.to_1d(y_pred)
 
-    y_test_categorical = utils.to_categorical(y_test)
+    y_test_categorical = utils.to_categorical(y_test, n_classes=n_classes)
 
     matrix = sklearn.metrics.confusion_matrix(y_test, y_pred_1d, labels=np.arange(n_classes))
 
