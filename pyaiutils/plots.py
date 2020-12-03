@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import itertools
-import sklearn
+from sklearn import metrics as sklearn_metrics
 import os
 
 from . import utils
@@ -20,12 +20,12 @@ def plot_confusion_matrix(
     uniques = np.unique(y_pred)
 
     if(len(y_pred.shape) == 1):
-        cm = sklearn.metrics.confusion_matrix(y_test, y_pred, labels=uniques)
+        cm = sklearn_metrics.confusion_matrix(y_test, y_pred, labels=uniques)
     else:
         y_test = utils.to_1d(y_test)
         y_pred = utils.to_1d(y_pred)
 
-        cm = sklearn.metrics.confusion_matrix(y_test, y_pred)
+        cm = sklearn_metrics.confusion_matrix(y_test, y_pred)
 
     rotulos = []
     
@@ -107,12 +107,12 @@ def plot_auc_roc_multi_class(y_test, y_pred, class_names, visualize=False, save_
     tpr = dict()
     roc_auc = dict()
     for i in range(n_classes):
-        fpr[i], tpr[i], _ = sklearn.metrics.roc_curve(y_test[:, i], y_pred[:, i])
-        roc_auc[i] = sklearn.metrics.auc(fpr[i], tpr[i])
+        fpr[i], tpr[i], _ = sklearn_metrics.roc_curve(y_test[:, i], y_pred[:, i])
+        roc_auc[i] = sklearn_metrics.auc(fpr[i], tpr[i])
     # Compute micro-average ROC curve and ROC area
-    fpr["micro"], tpr["micro"], _ = sklearn.metrics.roc_curve(
+    fpr["micro"], tpr["micro"], _ = sklearn_metrics.roc_curve(
         y_test.ravel(), y_pred.ravel())
-    roc_auc["micro"] = sklearn.metrics.auc(fpr["micro"], tpr["micro"])
+    roc_auc["micro"] = sklearn_metrics.auc(fpr["micro"], tpr["micro"])
 
     lw = 2
     # First aggregate all false positive rates
@@ -128,7 +128,7 @@ def plot_auc_roc_multi_class(y_test, y_pred, class_names, visualize=False, save_
 
     fpr["macro"] = all_fpr
     tpr["macro"] = mean_tpr
-    roc_auc["macro"] = sklearn.metrics.auc(fpr["macro"], tpr["macro"])
+    roc_auc["macro"] = sklearn_metrics.auc(fpr["macro"], tpr["macro"])
 
     # Plot all ROC curves
     plt.figure(figsize=(15, 10))
@@ -183,15 +183,15 @@ def plot_prc_auc_multiclass(y_test, y_pred, class_names, visualize=False, save_p
     recall = dict()
     average_precision = dict()
     for i in range(n_classes):
-        precision[i], recall[i], _ = sklearn.metrics.precision_recall_curve(y_test[:, i],
+        precision[i], recall[i], _ = sklearn_metrics.precision_recall_curve(y_test[:, i],
                                                                     y_pred[:, i])
-        average_precision[i] = sklearn.metrics.average_precision_score(
+        average_precision[i] = sklearn_metrics.average_precision_score(
             y_test[:, i], y_pred[:, i])
 
     # A "micro-average": quantifying score on all classes jointly
-    precision["micro"], recall["micro"], _ = sklearn.metrics.precision_recall_curve(y_test.ravel(),
+    precision["micro"], recall["micro"], _ = sklearn_metrics.precision_recall_curve(y_test.ravel(),
                                                                             y_pred.ravel())
-    average_precision["micro"] = sklearn.metrics.average_precision_score(y_test, y_pred,
+    average_precision["micro"] = sklearn_metrics.average_precision_score(y_test, y_pred,
                                                                  average="micro")
     # print('Average precision score, micro-averaged over all classes: {0:0.2f}'
     #      .format(average_precision["micro"]))

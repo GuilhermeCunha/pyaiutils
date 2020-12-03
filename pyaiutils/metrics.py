@@ -17,17 +17,16 @@ def precision(tp, fp):
     return tp / (fp + tp)
 
 def f1_score(y_true, y_pred):
-    if(len(np.unique(y_pred)) != len(np.unique(y_true))):
-        y_pred = utils.to_1d(y_pred)
-        y_true = utils.to_1d(y_true)
+    assert len(np.shape(y_true)) == 1, "y_true must be a 1-dimension array of integers"
+    assert len(np.shape(y_pred)) == 1, "y_pred must be a 1-dimension array of integers"
+    
     return sklearn.metrics.f1_score(y_true, y_pred, average=None)
 
 def prc_auc(y_true, y_pred, class_names):
-
-    if(len(y_pred.shape) == 1):
-        y_pred = utils.to_categorical(y_pred, np.unique(y_pred))
-        y_true = utils.to_categorical(y_true, np.unique(y_true))
     n_classes = len(class_names)
+    assert (len(np.shape(y_pred)) > 1 and np.shape(y_pred)[-1] == n_classes), f"y_pred must be a n-dimension array like (n_samples, {n_classes})"
+    assert (len(np.shape(y_true)) > 1 and np.shape(y_true)[-1] == n_classes), f"y_true must be a n-dimension array like (n_samples, {n_classes})"
+
     precision = dict()
     recall = dict()
     average_precision = []
@@ -40,9 +39,9 @@ def prc_auc(y_true, y_pred, class_names):
 
 
 def roc_auc(y_true, y_pred, class_names):
-    if(len(y_pred.shape) == 1):
-        y_pred = utils.to_categorical(y_pred, np.unique(y_pred))
-        y_true = utils.to_categorical(y_true, np.unique(y_true))
+    n_classes = len(class_names)
+    assert (len(np.shape(y_pred)) > 1 and np.shape(y_pred)[-1] == n_classes), f"y_pred must be a n-dimension array like (n_samples, {n_classes})"
+    assert (len(np.shape(y_true)) > 1 and np.shape(y_true)[-1] == n_classes), f"y_true must be a n-dimension array like (n_samples, {n_classes})"
 
     n_classes = len(class_names)
     fpr = dict()
@@ -59,31 +58,34 @@ def get_metrics(y_test, y_pred, class_names, save_path=None):
     
     Parameters
     ----------
-    y_true : array-like of shape (n_samples,)
+    y_true : 1-dimension array of integers
         Ground truth (correct) target values.
 
-    y_pred : array-like of shape (n_samples,)
+    y_pred : 1-dimension array of integers
         Estimated targets as returned by a classifier.
 
-    class_names : array-like of shape (n_classes)
+    class_names : 1-dimension array of strings
         List of labels containing each class of the dataset
 
     save_path : string, default=None
         Path to the folder where the metrics are to be saved
     """
 
+
     y_test = np.array(y_test)
     y_pred = np.array(y_pred)
 
-    if(len(y_test.shape) != 1):
-        y_test = utils.to_1d(y_test)
-        
-    if(len(y_pred.shape) != 1):
-        y_pred = utils.to_1d(y_pred)
+    n_classes = len(class_names)
 
-    class_indexes = np.arange(len(class_names))
+    assert len(np.shape(y_test)) == 1, "y_test must be a 1-dimension array of integers"
+    assert (len(np.shape(y_pred)) > 1 and np.shape(y_pred)[-1] == n_classes), f"y_pred must be a n-dimension array like (n_samples, {n_classes})"
+    assert (isinstance(class_names, list) and isinstance(class_names[0], str)), "class_names must be a 1-dimension array of strings"
 
-    matrix = sklearn.metrics.confusion_matrix(y_test, y_pred, labels=class_indexes)
+    y_pred_1d = utils.to_1d(y_pred)
+
+    y_test_categorical = utils.to_categorical(y_test)
+
+    matrix = sklearn.metrics.confusion_matrix(y_test, y_pred_1d, labels=np.arange(n_classes))
 
 
     TP = np.diag(matrix)
@@ -94,18 +96,20 @@ def get_metrics(y_test, y_pred, class_names, save_path=None):
     P = TP+FN
     N = TN+FP
 
+    
     metrics_ = pd.DataFrame()
-    rows = class_names.copy()
+    rows = list(class_names).copy()
     rows.append('Média')
     metrics_['Classes'] = rows
 
-    _f1 = np.around(f1_score(y_test, y_pred), decimals=2)
+
+    _f1 = np.around(f1_score(y_test, y_pred_1d), decimals=2)
     _f1 = np.append(_f1, np.around(np.mean(_f1), decimals=2))
 
-    _roc_auc = np.around(roc_auc(y_test, y_pred, class_names), decimals=2)
+    _roc_auc = np.around(roc_auc(y_test_categorical, y_pred, class_names), decimals=2)
     _roc_auc = np.append(_roc_auc, np.around(np.mean(_roc_auc), decimals=2))
 
-    _prc_auc = np.around(prc_auc(y_test, y_pred, class_names), decimals=2)
+    _prc_auc = np.around(prc_auc(y_test_categorical, y_pred, class_names), decimals=2)
     _prc_auc = np.append(_prc_auc, np.around(np.mean(_prc_auc), decimals=2))
 
     _precision = np.around(precision(TP, FP), decimals=2)
