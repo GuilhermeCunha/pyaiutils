@@ -11,27 +11,25 @@ import logging
 log = logging.getLogger()
 
 def plot_confusion_matrix(
-    y_test, y_pred, class_names=None, save_path=None, 
+    y_test, y_pred, class_names, save_path=None, 
     visualize=False, cmap=None, normalize=True, labels=True,
     title='Matriz de confusão',
     figsize=(10, 10)
     ):
     y_test = np.array(y_test)
     y_pred = np.array(y_pred)
-    uniques = np.unique(y_pred)
+    
+    assert len(np.shape(y_test)) == 1, "y_test must be a 1-dimension array of integers"
+    assert len(np.shape(y_pred)) == 1, "y_pred must be a 1-dimension array of integers"
 
-    if(len(y_pred.shape) == 1):
-        cm = confusion_matrix(y_test, y_pred, labels=uniques)
-    else:
-        y_test = utils.to_1d(y_test)
-        y_pred = utils.to_1d(y_pred)
+    uniques = np.arange(len(class_names))
 
-        cm = confusion_matrix(y_test, y_pred)
+    cm = confusion_matrix(y_test, y_pred, labels=uniques)
 
     rotulos = []
     
-    for index, value in enumerate(uniques):
-        for i, v in enumerate(uniques):
+    for _i, _v in enumerate(uniques):
+        for _ii, _vv in enumerate(uniques):
             rotulos.append('')
 
     if cmap is None:
@@ -86,8 +84,10 @@ def plot_confusion_matrix(
         dest = os.path.join(save_path, 'confusion_matriz.png')
         log.debug(f"Saving confusion matriz in {dest}")
         fig.savefig(dest, dpi=180, bbox_inches='tight')
+    
     if(visualize):
         plt.show()
+    
     plt.close()
 
 
@@ -95,15 +95,12 @@ def plot_auc_roc_multi_class(y_test, y_pred, class_names, visualize=False, save_
     y_test = np.array(y_test)
     y_pred = np.array(y_pred)
 
-    if(len(y_pred.shape) == 1):
-        y_pred = utils.to_categorical(y_pred, np.unique(y_test))
-        y_test = utils.to_categorical(y_test, np.unique(y_test))
-    # else:
-        #y_pred = to_1d(y_pred)
-        #y_test = to_1d(y_test)
-        #y_pred = to_categorical(y_pred, class_names)
-        #y_test = to_categorical(y_test, class_names)
     n_classes = len(class_names)
+    
+    assert (len(np.shape(y_test)) > 1 and np.shape(y_test)[-1] == n_classes), f"y_test must be a n-dimension array like (n_samples, {n_classes})"
+    assert (len(np.shape(y_pred)) > 1 and np.shape(y_pred)[-1] == n_classes), f"y_pred must be a n-dimension array like (n_samples, {n_classes})"
+
+    
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
@@ -176,10 +173,11 @@ def plot_prc_auc_multiclass(y_test, y_pred, class_names, visualize=False, save_p
     y_test = np.array(y_test)
     y_pred = np.array(y_pred)
 
-    if(len(y_pred.shape) == 1):
-        y_pred = utils.to_categorical(y_pred, np.unique(y_test))
-        y_test = utils.to_categorical(y_test, np.unique(y_test))
     n_classes = len(class_names)
+
+    assert (len(np.shape(y_test)) > 1 and np.shape(y_test)[-1] == n_classes), f"y_test must be a n-dimension array like (n_samples, {n_classes})"
+    assert (len(np.shape(y_pred)) > 1 and np.shape(y_pred)[-1] == n_classes), f"y_pred must be a n-dimension array like (n_samples, {n_classes})"
+    
     precision = dict()
     recall = dict()
     average_precision = dict()
@@ -194,8 +192,6 @@ def plot_prc_auc_multiclass(y_test, y_pred, class_names, visualize=False, save_p
                                                                             y_pred.ravel())
     average_precision["micro"] = average_precision_score(y_test, y_pred,
                                                                  average="micro")
-    # print('Average precision score, micro-averaged over all classes: {0:0.2f}'
-    #      .format(average_precision["micro"]))
 
     colors = itertools.cycle(
         ['navy', 'turquoise', 'darkorange', 'cornflowerblue', 'teal'])
@@ -240,21 +236,3 @@ def plot_prc_auc_multiclass(y_test, y_pred, class_names, visualize=False, save_p
     if(visualize):
         plt.show()
     plt.close()
-
-
-def plot_graphics(y_true, y_pred, class_names=None, visualize=False, normalize=True, save_path=None):
-    if(class_names is None):
-        class_names = np.unique(np.array(y_pred))
-        
-    plot_confusion_matrix(
-        y_true, y_pred, class_names=class_names, save_path=save_path, 
-        visualize=visualize, normalize=normalize
-        )
-    plot_auc_roc_multi_class(
-        y_true, y_pred,class_names=class_names, save_path=save_path,
-        visualize=visualize
-        )
-    plot_prc_auc_multiclass(
-        y_true, y_pred, class_names=class_names, save_path=save_path, 
-        visualize=visualize
-        )
