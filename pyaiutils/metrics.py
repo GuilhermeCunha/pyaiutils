@@ -5,16 +5,21 @@ import os
 from . import utils
 
 def recall(tp, p):
-    return tp / p
+    result = tp / p
+    return [0 if (x != x) else x for x in result]
 
 def specificity(tn, n):
-    return tn / n
+    result = tn / n
+    return [0 if (x != x) else x for x in result]
 
 def accuracy(tn, tp, p, n):
-    return (tn + tp) / (p + n)
+    result = (tn + tp) / (p + n)
+    return [0 if (x != x) else x for x in result]
 
 def precision(tp, fp):
-    return tp / (fp + tp)
+    result = tp / (fp + tp)
+
+    return [0 if (x != x) else x for x in result]
 
 def f1_score(y_true, y_pred):
     assert len(np.shape(y_true)) == 1, "y_true must be a 1-dimension array of integers"
@@ -76,18 +81,28 @@ def get_metrics(y_test, y_pred, class_names, save_path=None):
     y_pred = np.array(y_pred)
 
     n_classes = len(class_names)
+    labels = np.arange(n_classes)
 
     assert len(np.shape(y_test)) == 1, "y_test must be a 1-dimension array of integers"
     assert (len(np.shape(y_pred)) > 1 and np.shape(y_pred)[-1] == n_classes), f"y_pred must be a n-dimension array like (n_samples, {n_classes})"
-    assert len(y_test) == len(y_pred), "y_test and y_pred must have the same size"
+    
     assert (isinstance(class_names, list) and isinstance(class_names[0], str)), "class_names must be a 1-dimension array of strings"
 
     y_pred_1d = utils.to_1d(y_pred)
 
+    assert len(y_test) == len(y_pred_1d), "y_test and y_pred must have the same size"
+
     y_test_categorical = utils.to_categorical(y_test, n_classes=n_classes)
 
-    matrix = sklearn.metrics.confusion_matrix(y_test, y_pred_1d, labels=np.arange(n_classes))
+    matrix = sklearn.metrics.confusion_matrix(y_test, y_pred_1d, labels=labels)
 
+
+    model_accuracy = sklearn.metrics.accuracy_score(y_test, y_pred_1d)
+    model_prc_auc = sklearn.metrics.average_precision_score(y_test_categorical, y_pred)
+    model_roc_auc= sklearn.metrics.roc_auc_score(y_test_categorical, y_pred)
+
+    
+    
 
     TP = np.diag(matrix)
     FP = matrix.sum(axis=0) - TP
@@ -97,46 +112,52 @@ def get_metrics(y_test, y_pred, class_names, save_path=None):
     P = TP+FN
     N = TN+FP
 
-    
     metrics_ = pd.DataFrame()
     rows = list(class_names).copy()
-    rows.append('Média')
+    rows.append('Mean')
+    rows.append('Min')
+    rows.append('Max')
     metrics_['Classes'] = rows
 
-
     _f1 = np.around(f1_score(y_test, y_pred_1d), decimals=2)
-    _f1 = np.append(_f1, np.around(np.mean(_f1), decimals=2))
 
     _roc_auc = np.around(roc_auc(y_test_categorical, y_pred, class_names), decimals=2)
-    _roc_auc = np.append(_roc_auc, np.around(np.mean(_roc_auc), decimals=2))
 
     _prc_auc = np.around(prc_auc(y_test_categorical, y_pred, class_names), decimals=2)
-    _prc_auc = np.append(_prc_auc, np.around(np.mean(_prc_auc), decimals=2))
 
     _precision = np.around(precision(TP, FP), decimals=2)
-    _precision = np.append(_precision, np.around(
-        np.mean(_precision), decimals=2))
 
     _recall = np.around(recall(TP, P), decimals=2)
-    _recall = np.append(_recall, np.around(np.mean(_recall), decimals=2))
+
     _specificity = np.around(specificity(TN, N), decimals=2)
-    _specificity = np.append(_specificity, np.around(
-        np.mean(_specificity), decimals=2))
 
     _accuracy = np.around(accuracy(TN, TP, P, N), decimals=2)
-    _accuracy = np.append(_accuracy, np.around(np.mean(_accuracy), decimals=2))
 
-    metrics_["F1"] = _f1
-    metrics_["ROC AUC"] = _roc_auc
-    metrics_["PRC AUC"] = _prc_auc
-    metrics_["Precision"] = _precision
-    metrics_["Recall"] = _recall
-    metrics_["Specificity"] = _specificity
-    metrics_["Accuracy"] = _accuracy
+    def get_statistics(value, class_names):
 
+        mean = np.around(np.mean(value), decimals=2)
+        argmin = np.argmin(value)
+        argmax = np.argmax(value)
+
+        return mean, class_names[argmin], class_names[argmax]
+
+
+    metrics_["F1"] = np.append(_f1, get_statistics(_f1, class_names))
+    metrics_["ROC AUC"] = np.append(_roc_auc, get_statistics(_roc_auc, class_names))
+    metrics_["PRC AUC"] =  np.append(_prc_auc, get_statistics(_prc_auc, class_names))
+    metrics_["Precision"] =  np.append(_precision, get_statistics(_precision, class_names))
+    metrics_["Recall"] =  np.append(_recall, get_statistics(_recall, class_names))
+    metrics_["Specificity"] =  np.append(_specificity, get_statistics(_specificity, class_names))
+    metrics_["Accuracy"] =  np.append(_accuracy, get_statistics(_accuracy, class_names))
+
+    model_metrics = {
+        "accuracy" : model_accuracy,
+        "prc_auc": model_prc_auc,
+        "roc_auc": model_roc_auc
+    }
     if(save_path is not None):
         if(not os.path.isdir(save_path)):
             os.makedirs(save_path, exist_ok=True)
         metrics_.to_csv(os.path.join(save_path, 'metrics.csv'),
                         index=False, header=True)
-    return metrics_
+    return metrics_ , model_metrics

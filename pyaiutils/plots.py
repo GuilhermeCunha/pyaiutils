@@ -235,4 +235,5 @@ def plot_prc_auc_multiclass(y_test, y_pred, class_names, visualize=False, save_p
     
     if(visualize):
         plt.show()
+        
     plt.close()
