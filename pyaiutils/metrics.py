@@ -119,6 +119,8 @@ def get_metrics(y_test, y_pred, class_names, save_path=None):
     rows.append('Max')
     metrics_['Classes'] = rows
 
+    
+
     _f1 = np.around(f1_score(y_test, y_pred_1d), decimals=2)
 
     _roc_auc = np.around(roc_auc(y_test_categorical, y_pred, class_names), decimals=2)
@@ -150,14 +152,16 @@ def get_metrics(y_test, y_pred, class_names, save_path=None):
     metrics_["Specificity"] =  np.append(_specificity, get_statistics(_specificity, class_names))
     metrics_["Accuracy"] =  np.append(_accuracy, get_statistics(_accuracy, class_names))
 
-    model_metrics = {
-        "accuracy" : model_accuracy,
-        "prc_auc": model_prc_auc,
-        "roc_auc": model_roc_auc
-    }
+    model_metrics = [["accuracy" , model_accuracy], ["prc_auc", model_prc_auc], ["roc_auc", model_roc_auc]]
+
+    model_metrics_df = pd.DataFrame(model_metrics, columns=['metric', 'value'])
+
     if(save_path is not None):
         if(not os.path.isdir(save_path)):
             os.makedirs(save_path, exist_ok=True)
         metrics_.to_csv(os.path.join(save_path, 'metrics.csv'),
                         index=False, header=True)
-    return metrics_ , model_metrics
+        model_metrics_df.to_csv(os.path.join(save_path, 'model_metrics.csv'),
+                        index=False, header=True)
+                        
+    return metrics_ , model_metrics_df
